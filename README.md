@@ -1,4 +1,4 @@
-# twitter_stream_scaper
+# twitter_stream_scraper
 A python implementation of the Twitter Category Stream.
 
 This Python script is an implementation based on the version https://github.com/tomkdickinson/TwitterSearchAPI.
