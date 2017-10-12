@@ -7,6 +7,7 @@ from urlparse import urlunparse
 from bs4 import BeautifulSoup
 from time import sleep
 import jsonpickle
+import json
 
 
 __author__ = 'Lucas Santos'
@@ -33,27 +34,25 @@ class TwitterStream:
         continue_search = True
         min_tweet = None
         response = self.execute_search(url)
-        while response is not None and continue_search:
-            tweets = self.parse_tweets(response)
+        while response is not None and continue_search and response['items_html'] is not None:
+            tweets_id, tweets = self.parse_tweets(response['items_html'])
 
             # If we have no tweets, then we can break the loop early
             if len(tweets) == 0:
                 break
 
-            # If we haven't set our min tweet yet, set it now
-            if min_tweet is None:
-                min_tweet = tweets[0]
-
             continue_search = self.save_tweets(tweets, file_name)
 
-            # Our max tweet is the last tweet in the list
-            max_tweet = tweets[-1]
-            if min_tweet['tweet_id'] is not max_tweet['tweet_id']:
-                max_position = "TWEET-%s-%s" % (max_tweet['tweet_id'], min_tweet['tweet_id'])
-                url = self.construct_url(query, max_position=max_position)
-                # Sleep for our rate_delay
-                sleep(self.rate_delay)
-                response = self.execute_search(url)
+            # # Our max tweet is the last tweet in the list
+            # max_tweet = tweets[-1]
+            # if min_tweet['tweet_id'] is not max_tweet['tweet_id']:
+            max_position = "{\"seenTweetIDs\":%s,\"servedRangeOption\":{\"bottom\":%s, \"top\":%s}}" % (tweets_id[:-1], tweets_id[-1], tweets_id[-1])
+            max_position = str.replace(max_position," ","")
+            max_position = str.replace(max_position,"'","")
+            url = self.construct_url(category, max_position=max_position).replace("?","",1)      
+            # Sleep for our rate_delay
+            sleep(self.rate_delay)
+            response = self.execute_search(url)
 
     def execute_search(self, url):
         """
@@ -68,7 +67,7 @@ class TwitterStream:
             }
             req = urllib2.Request(url, headers=headers)
             response = urllib2.urlopen(req) 
-            data = response.read()
+            data = json.loads(response.read())
             return data
 
         # If we get a ValueError exception due to a request timing out, we sleep for our error delay, then make
@@ -86,13 +85,16 @@ class TwitterStream:
         :param items_html: The HTML block with tweets
         :return: A JSON list of tweets
         """
-        soup = BeautifulSoup(items_html, "html5lib")
+        soup = BeautifulSoup(items_html, "html")
         tweets = []
+        tweets_id = []
         for div in soup.find_all("div", class_='js-stream-tweet'):
 
             # If our div doesn't have a tweet-id, we skip it as it's not going to be a tweet.
             if 'data-tweet-id' not in div.attrs:
                 continue
+
+            tweets_id.append(div['data-tweet-id'])
 
             tweet = {
                 'tweet_id': div['data-tweet-id'],
@@ -133,13 +135,13 @@ class TwitterStream:
                 tweet['favorites'] = int(favorite_span[0]['data-tweet-stat-count'])
 
             tweets.append(tweet)
-        return tweets
+        return (tweets_id, tweets)
 
     @staticmethod
     def construct_url(category, max_position=None):
         """
-        For a given query, will construct a URL to search Twitter with
-        :param query: The query term used to search twitter
+        For a given category, will construct a URL to search Twitter with
+        :param category: The category term used to search twitter
         :param max_position: The max_position value to select the next pagination of tweets
         :return: A string URL
         """
@@ -147,9 +149,13 @@ class TwitterStream:
         # If our max_position param is not None, we add it to the parameters
         params = dict()
         if max_position is not None:
+            params['include_available_features'] = 1
+            params['include_entities'] = 1
             params['max_position'] = max_position
+            params['reset_error_state'] = 'false'
+            
 
-        url_tupple = ('https', 'twitter.com', '/i/streams/category/'+category, '',urlencode(params), '')
+        url_tupple = ('https', 'twitter.com', '/i/streams/category/'+category+'/timeline?','',urlencode(params), '')
         return urlunparse(url_tupple)
 
     @abstractmethod
@@ -160,7 +166,7 @@ class TwitterStream:
         """
 
 
-class TwitterStramImpl(TwitterStream):
+class TwitterSearchImpl(TwitterStream):
 
     
     def __init__(self, rate_delay, error_delay, max_tweets):
@@ -202,5 +208,5 @@ class TwitterStramImpl(TwitterStream):
         
 if __name__ == '__main__':
    
-    twit = TwitterStream(2, 3, 10000)
+    twit = TwitterSearchImpl(2, 5, 10000)
     twit.search("687094900836274187","stream_politics")    
