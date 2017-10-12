@@ -42,11 +42,8 @@ class TwitterStream:
                 break
 
             continue_search = self.save_tweets(tweets, file_name)
-
-            # # Our max tweet is the last tweet in the list
-            # max_tweet = tweets[-1]
-            # if min_tweet['tweet_id'] is not max_tweet['tweet_id']:
-            max_position = "{\"seenTweetIDs\":%s,\"servedRangeOption\":{\"bottom\":%s, \"top\":%s}}" % (tweets_id[:-1], tweets_id[-1], tweets_id[-1])
+            #Try to capture maximum tweets as possible, passing as parameter the last 10 tweets. 
+            max_position = "{\"seenTweetIDs\":%s,\"servedRangeOption\":{\"bottom\":%s, \"top\":%s}}" % (tweets_id[-10:-1], tweets_id[-1], tweets_id[-1])
             max_position = str.replace(max_position," ","")
             max_position = str.replace(max_position,"'","")
             url = self.construct_url(category, max_position=max_position).replace("?","",1)      
@@ -113,7 +110,7 @@ class TwitterStream:
                 tweet['text'] = text_p.get_text()
 
             # Tweet User ID, User Screen Name, User Name
-            user_details_div = div.find("div", class_="tweet")
+            user_details_div = div.find("div", class_="original-tweet")
             if user_details_div is not None:
                 tweet['user_id'] = user_details_div['data-user-id']
                 tweet['user_screen_name'] = user_details_div['data-user-id']
@@ -208,5 +205,5 @@ class TwitterSearchImpl(TwitterStream):
         
 if __name__ == '__main__':
    
-    twit = TwitterSearchImpl(2, 5, 10000)
-    twit.search("687094900836274187","stream_politics")    
+    twit = TwitterSearchImpl(3, 5, 10000)
+    twit.search("687094900836274204","stream_music")
