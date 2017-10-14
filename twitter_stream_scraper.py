@@ -42,11 +42,14 @@ class TwitterStream:
                 break
 
             continue_search = self.save_tweets(tweets, file_name)
-            #Try to capture maximum tweets as possible, passing as parameter the last 10 tweets. 
-            max_position = "{\"seenTweetIDs\":%s,\"servedRangeOption\":{\"bottom\":%s, \"top\":%s}}" % (tweets_id[-10:-1], tweets_id[-1], tweets_id[-1])
-            max_position = str.replace(max_position," ","")
-            max_position = str.replace(max_position,"'","")
-            url = self.construct_url(category, max_position=max_position).replace("?","",1)      
+            # Try to capture maximum tweets as possible, passing as parameter
+            # the last 10 tweets.
+            max_position = "{\"seenTweetIDs\":%s,\"servedRangeOption\":{\"bottom\":%s, \"top\":%s}}" % (
+                tweets_id[-10:-1], tweets_id[-1], tweets_id[-1])
+            max_position = str.replace(max_position, " ", "")
+            max_position = str.replace(max_position, "'", "")
+            url = self.construct_url(
+                category, max_position=max_position).replace("?", "", 1)
             # Sleep for our rate_delay
             sleep(self.rate_delay)
             response = self.execute_search(url)
@@ -58,12 +61,13 @@ class TwitterStream:
         :return: A HTML object with data from Twitter
         """
         try:
-            # Specify a user agent to prevent Twitter from returning a profile card
+            # Specify a user agent to prevent Twitter from returning a profile
+            # card
             headers = {
                 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.86 Safari/537.36'
             }
             req = urllib2.Request(url, headers=headers)
-            response = urllib2.urlopen(req) 
+            response = urllib2.urlopen(req)
             data = json.loads(response.read())
             return data
 
@@ -71,7 +75,7 @@ class TwitterStream:
         # another attempt
         except ValueError as e:
             print(e.message)
-            print( "Sleeping for %i" % self.error_delay)
+            print("Sleeping for %i" % self.error_delay)
             sleep(self.error_delay)
             return self.execute_search(url)
 
@@ -87,7 +91,8 @@ class TwitterStream:
         tweets_id = []
         for div in soup.find_all("div", class_='js-stream-tweet'):
 
-            # If our div doesn't have a tweet-id, we skip it as it's not going to be a tweet.
+            # If our div doesn't have a tweet-id, we skip it as it's not going
+            # to be a tweet.
             if 'data-tweet-id' not in div.attrs:
                 continue
 
@@ -122,14 +127,18 @@ class TwitterStream:
                 tweet['created_at'] = float(date_span['data-time-ms'])
 
             # Tweet Retweets
-            retweet_span = div.select("span.ProfileTweet-action--retweet > span.ProfileTweet-actionCount")
+            retweet_span = div.select(
+                "span.ProfileTweet-action--retweet > span.ProfileTweet-actionCount")
             if retweet_span is not None and len(retweet_span) > 0:
-                tweet['retweets'] = int(retweet_span[0]['data-tweet-stat-count'])
+                tweet['retweets'] = int(
+                    retweet_span[0]['data-tweet-stat-count'])
 
             # Tweet Favourites
-            favorite_span = div.select("span.ProfileTweet-action--favorite > span.ProfileTweet-actionCount")
+            favorite_span = div.select(
+                "span.ProfileTweet-action--favorite > span.ProfileTweet-actionCount")
             if favorite_span is not None and len(retweet_span) > 0:
-                tweet['favorites'] = int(favorite_span[0]['data-tweet-stat-count'])
+                tweet['favorites'] = int(
+                    favorite_span[0]['data-tweet-stat-count'])
 
             tweets.append(tweet)
         return (tweets_id, tweets)
@@ -150,9 +159,9 @@ class TwitterStream:
             params['include_entities'] = 1
             params['max_position'] = max_position
             params['reset_error_state'] = 'false'
-            
 
-        url_tupple = ('https', 'twitter.com', '/i/streams/category/'+category+'/timeline?','',urlencode(params), '')
+        url_tupple = ('https', 'twitter.com', '/i/streams/category/' +
+                      category+'/timeline?', '', urlencode(params), '')
         return urlunparse(url_tupple)
 
     @abstractmethod
@@ -165,7 +174,6 @@ class TwitterStream:
 
 class TwitterSearchImpl(TwitterStream):
 
-    
     def __init__(self, rate_delay, error_delay, max_tweets):
         """
         :param rate_delay: How long to pause between calls to Twitter
@@ -181,8 +189,8 @@ class TwitterSearchImpl(TwitterStream):
         Just prints out tweets
         :return:
         """
-        
-        f =  open(file_name+".json", 'a+')
+
+        f = open(file_name+".json", 'a+')
 
         for tweet in tweets:
             # Lets add a counter so we only collect a max number of tweets
@@ -195,15 +203,21 @@ class TwitterSearchImpl(TwitterStream):
                         '\n')
                 print("%i [%s] -" % (self.counter, t.strftime(fmt)))
 
-            # When we've reached our max limit, return False so collection stops
-            
+            # When we've reached our max limit, return False so collection
+            # stops
+
             if self.counter >= self.max_tweets:
                 return False
 
         return True
         f.close()
-        
+
 if __name__ == '__main__':
-   
+
     twit = TwitterSearchImpl(3, 5, 10000)
-    twit.search("687094900836274204","stream_music")
+    # twit.search("687094900836274198","stream_entertaining")
+    # twit.search("687094900836274187","stream_politics")
+    # twit.search("798288329506598913","stream_sports")
+    # twit.search("798245663997734912","stream_fun")
+    # twit.search("687094900836274204","stream_music")
+    twit.search("691837024001662976", "stream_style")
