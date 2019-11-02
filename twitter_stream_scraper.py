@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import urllib2
 import datetime
 from abc import ABCMeta
@@ -45,9 +46,11 @@ class TwitterStream:
             # Try to capture maximum tweets as possible, passing as parameter
             # the last 10 tweets.
             max_position = "{\"seenTweetIDs\":%s,\"servedRangeOption\":{\"bottom\":%s, \"top\":%s}}" % (
-                tweets_id[-10:-1], tweets_id[-1], tweets_id[-1])
-            max_position = str.replace(max_position, " ", "")
-            max_position = str.replace(max_position, "'", "")
+                tweets_id[-20:-1], tweets_id[-1], tweets_id[-1])
+            max_position = unicode.replace(max_position, " ", "")
+            max_position = unicode.replace(max_position, "'", "")
+            max_position = unicode.replace(max_position, "u", "")
+            print(max_position)
             url = self.construct_url(
                 category, max_position=max_position).replace("?", "", 1)
             # Sleep for our rate_delay
@@ -64,7 +67,9 @@ class TwitterStream:
             # Specify a user agent to prevent Twitter from returning a profile
             # card
             headers = {
-                'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.86 Safari/537.36'
+                'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.86 Safari/537.36',
+                'X-Twitter-Active-User': 'yes',
+                'X-Twitter-Active-User': 'yes'
             }
             req = urllib2.Request(url, headers=headers)
             response = urllib2.urlopen(req)
@@ -214,10 +219,10 @@ class TwitterSearchImpl(TwitterStream):
 
 if __name__ == '__main__':
 
-    twit = TwitterSearchImpl(3, 5, 10000)
+    twit = TwitterSearchImpl(5, 5, 10000)
     # twit.search("687094900836274198","stream_entertaining")
-    # twit.search("687094900836274187","stream_politics")
+    twit.search("687094900836274187","stream_politics")
     # twit.search("798288329506598913","stream_sports")
     # twit.search("798245663997734912","stream_fun")
     # twit.search("687094900836274204","stream_music")
-    twit.search("691837024001662976", "stream_style")
+    # twit.search("691837024001662976", "stream_style")
